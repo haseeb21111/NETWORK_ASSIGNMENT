@@ -6,29 +6,10 @@ executors:
       - image: circleci/node:14
 
 jobs:
-  build:
+  deploy:
     executor: docker-executor
     steps:
       - checkout
-
-      - run:
-          name: Install Dependencies
-          command: |
-            sudo apt update
-            sudo apt install -y docker.io
-            docker --version
-
-      - run:
-          name: Build Docker Image
-          command: docker build -t network-assignment .
-
-      - run:
-          name: Run Container
-          command: docker run -d -p 80:80 --name network-assignment network-assignment
-
-    deploy:
-    executor: docker-executor
-    steps:
       - run:
           name: Deploy to EC2
           command: |
@@ -38,12 +19,8 @@ jobs:
             docker-compose up -d
             EOF
 
-
 workflows:
   version: 2
-  ci-cd:
+  build-and-deploy:
     jobs:
-      - build
-      - deploy:
-          requires:
-            - build
+      - deploy
