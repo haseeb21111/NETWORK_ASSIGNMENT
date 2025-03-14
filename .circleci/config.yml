@@ -1,20 +1,53 @@
 version: 2.1
-jobs:
-  deploy:
+
+executors:
+  docker-executor:
     docker:
-      - image: circleci/python:3.8
+      - image: circleci/node:14
+
+jobs:
+  build:
+    executor: docker-executor
     steps:
-      - add_ssh_keys:
-          fingerprints:
-            - "$AWS_PRIVATE_KEY"
+      - checkout
+
       - run:
-          name: Deploy to EC2
+          name: Install Dependencies
           command: |
-            ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "
-            cd /var/www/html &&
-            git pull origin main &&
-            docker-compose up -d"
-workflows:
+            sudo apt update
+            sudo apt install -y docker.io
+            docker --version
+
+      - run:
+          name: Build Docker Image
+          command: docker build -t network-assignment .
+
+      - run:
+          name: Run Container
+          command: docker run -d -p 80:80 --name network-assignment network-assignment
+
   deploy:
+    executor: docker-executor
+    steps:
+      - checkout
+
+      - run:
+          name: Deploy to AWS EC2
+          command: |
+            echo "$AWS_PRIVATE_KEY" > private_key.pem
+            chmod 600 private_key.pem
+            ssh -o StrictHostKeyChecking=no -i private_key.pem $EC2_USER@$EC2_HOST << EOF
+              docker pull network-assignment
+              docker stop network-assignment || true
+              docker rm network-assignment || true
+              docker run -d -p 80:80 --name network-assignment network-assignment
+            EOF
+
+workflows:
+  version: 2
+  ci-cd:
     jobs:
-      - deploy
+      - build
+      - deploy:
+          requires:
+            - build
