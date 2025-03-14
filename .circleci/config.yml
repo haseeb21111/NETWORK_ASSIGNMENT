@@ -26,22 +26,18 @@ jobs:
           name: Run Container
           command: docker run -d -p 80:80 --name network-assignment network-assignment
 
-  deploy:
+    deploy:
     executor: docker-executor
     steps:
-      - checkout
-
       - run:
-          name: Deploy to AWS EC2
+          name: Deploy to EC2
           command: |
-            echo "$AWS_PRIVATE_KEY" > private_key.pem
-            chmod 600 private_key.pem
-            ssh -o StrictHostKeyChecking=no -i private_key.pem $EC2_USER@$EC2_HOST << EOF
-              docker pull network-assignment
-              docker stop network-assignment || true
-              docker rm network-assignment || true
-              docker run -d -p 80:80 --name network-assignment network-assignment
+            ssh -o StrictHostKeyChecking=no -i private_key.pem $EC2_USER@$EC2_HOST << "EOF"
+            cd /var/www/html
+            git pull origin main
+            docker-compose up -d
             EOF
+
 
 workflows:
   version: 2
