@@ -1,26 +1,17 @@
 version: 2.1
 
-executors:
-  docker-executor:
+jobs:
+  test:
     docker:
       - image: circleci/node:14
-
-jobs:
-  deploy:
-    executor: docker-executor
     steps:
       - checkout
       - run:
-          name: Deploy to EC2
-          command: |
-            ssh -o StrictHostKeyChecking=no -i private_key.pem $EC2_USER@$EC2_HOST <<\EOF
-            cd /var/www/html
-            git pull origin main
-            docker-compose up -d
-            EOF
+          name: Show Pipeline Running
+          command: echo "Pipeline is working successfully!"
 
 workflows:
   version: 2
-  build-and-deploy:
+  simple-workflow:
     jobs:
-      - deploy
+      - test
